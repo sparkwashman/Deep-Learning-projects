@@ -1,0 +1,451 @@
+
+# Import TensorFlow
+import tensorflow as tf
+
+# Import NumPy
+import numpy as np
+
+# Import Matplotlib
+import matplotlib.pyplot as plt
+
+# Import time
+import time
+
+# Display TensorFlow version
+print("TensorFlow Version:", tf.__version__)
+
+print("Libraries imported successfully!")
+
+# Load MNIST dataset
+
+(x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
+
+# Display dataset information
+
+print("Training images:", x_train.shape)
+
+print("Training labels:", y_train.shape)
+
+print("Testing images:", x_test.shape)
+
+print("Testing labels:", y_test.shape)
+
+# visualise the original image
+# Display first 10 training images
+
+plt.figure(figsize=(12, 5))
+
+for i in range(10):
+
+    plt.subplot(2, 5, i + 1)
+
+    plt.imshow(x_train[i], cmap='gray')
+
+    plt.title("Digit: " + str(y_train[i]))
+
+    plt.axis('off')
+
+plt.tight_layout()
+
+plt.show()
+
+# Normalize training images
+
+x_train = x_train.astype('float32') / 255.0
+
+# Normalize testing images
+
+x_test = x_test.astype('float32') / 255.0
+
+# Add channel dimension
+
+x_train = np.expand_dims(x_train, axis=-1)
+
+x_test = np.expand_dims(x_test, axis=-1)
+
+# Display new shapes
+
+print("Training shape:", x_train.shape)
+
+print("Testing shape:", x_test.shape)
+
+# Create CNN model
+
+model = tf.keras.Sequential([
+
+    # Input image
+    tf.keras.layers.Input(shape=(28, 28, 1)),
+
+    # First convolution layer
+    tf.keras.layers.Conv2D(
+        16,
+        (3, 3),
+        activation='relu',
+        padding='same',
+        name='conv1'
+    ),
+
+    # First max pooling layer
+    tf.keras.layers.MaxPooling2D(
+        pool_size=(2, 2),
+        name='pool1'
+    ),
+
+    # Second convolution layer
+    tf.keras.layers.Conv2D(
+        32,
+        (3, 3),
+        activation='relu',
+        padding='same',
+        name='conv2'
+    ),
+
+    # Second max pooling layer
+    tf.keras.layers.MaxPooling2D(
+        pool_size=(2, 2),
+        name='pool2'
+    ),
+
+    # Convert feature maps into one-dimensional data
+    tf.keras.layers.Flatten(),
+
+    # Fully connected layer
+    tf.keras.layers.Dense(
+        64,
+        activation='relu'
+    ),
+
+    # Output layer
+    tf.keras.layers.Dense(
+        10,
+        activation='softmax'
+    )
+
+])
+
+# Display CNN architecture
+
+model.summary()
+
+# Compile the CNN model
+
+model.compile(
+
+    optimizer='adam',
+
+    loss='sparse_categorical_crossentropy',
+
+    metrics=['accuracy']
+
+)
+
+print("CNN model compiled successfully!")
+
+# Start measuring training time
+
+start_time = time.time()
+
+# Train the CNN
+
+history = model.fit(
+
+    x_train,
+
+    y_train,
+
+    epochs=5,
+
+    batch_size=128,
+
+    validation_split=0.1
+
+)
+
+# Calculate training time
+
+training_time = time.time() - start_time
+
+print("CNN training completed!")
+
+print("Training time:", training_time, "seconds")
+
+# Evaluate CNN using testing data
+
+test_loss, test_accuracy = model.evaluate(
+    x_test,
+    y_test
+)
+
+# Display results
+
+print("Testing Accuracy:", test_accuracy * 100, "%")
+
+print("Testing Loss:", test_loss)
+
+# Select one test image
+
+sample_image = x_test[0]
+
+# Display original image
+
+plt.figure(figsize=(3, 3))
+
+plt.imshow(sample_image.squeeze(), cmap='gray')
+
+plt.title("Original Input Image")
+
+plt.axis('off')
+
+plt.show()
+
+# Display actual digit
+
+print("Actual digit:", y_test[0])
+
+# Create a feature extraction model using model.inputs
+
+feature_model_1 = tf.keras.Model(
+
+    inputs=model.inputs,
+
+    outputs=model.get_layer('conv1').output
+
+)
+
+# Pass the selected image through the model
+
+feature_maps_1 = feature_model_1.predict(
+
+    sample_image.reshape(1, 28, 28, 1)
+
+)
+
+# Display feature map shape
+
+print("Feature map shape:", feature_maps_1.shape)
+
+
+# Create figure
+
+plt.figure(figsize=(12, 8))
+
+# Display all 16 feature maps
+
+for i in range(16):
+
+    plt.subplot(4, 4, i + 1)
+
+    plt.imshow(
+        feature_maps_1[0, :, :, i],
+        cmap='viridis'
+    )
+
+    plt.title("Filter " + str(i + 1))
+
+    plt.axis('off')
+
+plt.suptitle("Feature Maps - First Convolution Layer")
+
+plt.tight_layout()
+
+plt.show()
+
+# Create second feature extraction model using model.inputs
+
+feature_model_2 = tf.keras.Model(
+
+    inputs=model.inputs,
+
+    outputs=model.get_layer('conv2').output
+
+)
+
+# Extract second layer features
+
+feature_maps_2 = feature_model_2.predict(
+
+    sample_image.reshape(1, 28, 28, 1)
+
+)
+
+# Display shape
+
+print("Second feature map shape:", feature_maps_2.shape)
+
+
+# Create visualization
+
+plt.figure(figsize=(12, 10))
+
+# Display first 16 of 32 feature maps
+
+for i in range(16):
+
+    plt.subplot(4, 4, i + 1)
+
+    plt.imshow(
+        feature_maps_2[0, :, :, i],
+        cmap='viridis'
+    )
+
+    plt.title("Feature " + str(i + 1))
+
+    plt.axis('off')
+
+plt.suptitle("Feature Maps - Second Convolution Layer")
+
+plt.tight_layout()
+
+plt.show()
+
+# Create figure
+
+plt.figure(figsize=(12, 5))
+
+# Display original image
+
+plt.subplot(1, 5, 1)
+
+plt.imshow(sample_image.squeeze(), cmap='gray')
+
+plt.title("Original Image")
+
+plt.axis('off')
+
+# Display first four feature maps
+
+for i in range(4):
+
+    plt.subplot(1, 5, i + 2)
+
+    plt.imshow(feature_maps_1[0, :, :, i], cmap='viridis')
+
+    plt.title("Feature " + str(i + 1))
+
+    plt.axis('off')
+
+plt.tight_layout()
+
+plt.show()
+
+# Get weights from first convolution layer
+
+filters, biases = model.get_layer('conv1').get_weights()
+
+# Display filter shape
+
+print("Filter shape:", filters.shape)
+
+# Visualize first 16 filters
+
+plt.figure(figsize=(10, 8))
+
+for i in range(16):
+
+    plt.subplot(4, 4, i + 1)
+
+    # Extract the filter weights
+
+    filter_image = filters[:, :, 0, i]
+
+    plt.imshow(filter_image, cmap='gray')
+
+    plt.title("Filter " + str(i + 1))
+
+    plt.axis('off')
+
+plt.suptitle("Learned CNN Convolution Filters")
+
+plt.tight_layout()
+
+plt.show()
+
+# Select an image
+
+test_image = x_test[5]
+
+# Make prediction
+
+prediction = model.predict(
+
+    test_image.reshape(1, 28, 28, 1)
+
+)
+
+# Find predicted digit
+
+predicted_digit = np.argmax(prediction)
+
+# Display original and predicted digit
+
+plt.imshow(test_image.squeeze(), cmap='gray')
+
+plt.title("Predicted Digit: " + str(predicted_digit))
+
+plt.axis('off')
+
+plt.show()
+
+print("Actual Digit:", y_test[5])
+
+print("Predicted Digit:", predicted_digit)
+
+
+# Plot training accuracy
+
+plt.plot(
+    history.history['accuracy'],
+    label='Training Accuracy'
+)
+
+plt.plot(
+    history.history['val_accuracy'],
+    label='Validation Accuracy'
+)
+
+plt.title("CNN Training and Validation Accuracy")
+
+plt.xlabel("Epochs")
+
+plt.ylabel("Accuracy")
+
+plt.legend()
+
+plt.grid(True)
+
+plt.show()
+
+
+# Plot training loss
+
+plt.plot(
+    history.history['loss'],
+    label='Training Loss'
+)
+
+plt.plot(
+    history.history['val_loss'],
+    label='Validation Loss'
+)
+
+plt.title("CNN Training and Validation Loss")
+
+plt.xlabel("Epochs")
+
+plt.ylabel("Loss")
+
+plt.legend()
+
+plt.grid(True)
+
+plt.show()
+
+
+
+
+
+
+
+
+
+
