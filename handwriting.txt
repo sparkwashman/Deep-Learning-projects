@@ -284,6 +284,259 @@ plt.ylim(0, 100)
 plt.show()
 
 
+# Loss values
+
+loss_values = [
+    relu_loss,
+    sigmoid_loss,
+    tanh_loss
+]
+
+# Draw bar graph
+
+plt.figure(figsize=(8, 5))
+
+plt.bar(activation_names, loss_values)
+
+plt.title('Loss Comparison of Activation Functions')
+
+plt.xlabel('Activation Functions')
+
+plt.ylabel('Testing Loss')
+
+plt.show()
+
+# Plot training accuracy
+
+plt.figure(figsize=(9, 5))
+
+plt.plot(
+    relu_history.history['accuracy'],
+    label='ReLU'
+)
+
+plt.plot(
+    sigmoid_history.history['accuracy'],
+    label='Sigmoid'
+)
+
+plt.plot(
+    tanh_history.history['accuracy'],
+    label='Tanh'
+)
+
+plt.title('Training Accuracy Comparison')
+
+plt.xlabel('Epoch')
+
+plt.ylabel('Accuracy')
+
+plt.legend()
+
+plt.grid(True)
+
+plt.show()
+
+# Plot training loss
+
+plt.figure(figsize=(9, 5))
+
+plt.plot(
+    relu_history.history['loss'],
+    label='ReLU'
+)
+
+plt.plot(
+    sigmoid_history.history['loss'],
+    label='Sigmoid'
+)
+
+plt.plot(
+    tanh_history.history['loss'],
+    label='Tanh'
+)
+
+plt.title('Training Loss Comparison')
+
+plt.xlabel('Epoch')
+
+plt.ylabel('Loss')
+
+plt.legend()
+
+plt.grid(True)
+
+plt.show()
+
+# Select one testing image
+
+sample_image = x_test[0]
+
+# Predict using ReLU model
+
+prediction = relu_model.predict(
+    sample_image.reshape(1, 784),
+    verbose=0
+)
+
+# Display probabilities for digits 0 to 9
+
+print("Softmax Probabilities:")
+
+for digit in range(10):
+
+    print(
+        "Digit", digit, ":",
+        round(float(prediction[0][digit]) * 100, 2),
+        "%"
+    )
+
+# Get predicted digit
+
+predicted_digit = np.argmax(prediction)
+
+# Display actual and predicted digit
+
+print("\nActual Digit:", y_test[0])
+
+print("Predicted Digit:", predicted_digit)
+
+# Select first 10 testing images
+
+sample_images = x_test[:10]
+
+# Predict digits using ReLU model
+
+predictions = relu_model.predict(sample_images)
+
+# Find predicted classes
+
+predicted_classes = np.argmax(predictions, axis=1)
+
+# Display images and predictions
+
+plt.figure(figsize=(12, 5))
+
+for i in range(10):
+
+    plt.subplot(2, 5, i + 1)
+
+    plt.imshow(
+        sample_images[i].reshape(28, 28),
+        cmap='gray'
+    )
+
+    plt.title(
+        "Actual: " + str(y_test[i]) +
+        "\nPredicted: " + str(predicted_classes[i])
+    )
+
+    plt.axis('off')
+
+plt.tight_layout()
+
+plt.show()
+
+# Predict all testing images
+
+test_predictions = relu_model.predict(x_test)
+
+# Convert probabilities into digit classes
+
+predicted_labels = np.argmax(
+    test_predictions,
+    axis=1
+)
+
+# Calculate confusion matrix
+
+confusion = tf.math.confusion_matrix(
+    y_test,
+    predicted_labels,
+    num_classes=10
+)
+
+# Convert to NumPy array
+
+confusion = confusion.numpy()
+
+# Display confusion matrix
+
+plt.figure(figsize=(9, 7))
+
+plt.imshow(confusion, cmap='Blues')
+
+plt.title('Confusion Matrix - ReLU Model')
+
+plt.xlabel('Predicted Digit')
+
+plt.ylabel('Actual Digit')
+
+plt.xticks(range(10))
+
+plt.yticks(range(10))
+
+plt.colorbar()
+
+plt.show()
+
+# Create final comparison table
+
+print("ACTIVATION FUNCTION PERFORMANCE ANALYSIS")
+
+print("----------------------------------------")
+
+print("Activation | Accuracy | Loss | Time (seconds)")
+
+print("----------------------------------------")
+
+print(
+    "ReLU     |",
+    round(relu_accuracy * 100, 2),
+    "|",
+    round(relu_loss, 4),
+    "|",
+    round(relu_time, 2)
+)
+
+print(
+    "Sigmoid  |",
+    round(sigmoid_accuracy * 100, 2),
+    "|",
+    round(sigmoid_loss, 4),
+    "|",
+    round(sigmoid_time, 2)
+)
+
+print(
+    "Tanh     |",
+    round(tanh_accuracy * 100, 2),
+    "|",
+    round(tanh_loss, 4),
+    "|",
+    round(tanh_time, 2)
+)
+
+print("----------------------------------------")
+
+# Save all three trained models
+
+relu_model.save("relu_digit_model.keras")
+
+sigmoid_model.save("sigmoid_digit_model.keras")
+
+tanh_model.save("tanh_digit_model.keras")
+
+print("All models saved successfully!")
+
+
+
+
+
+
+
+
+
 
 
 
