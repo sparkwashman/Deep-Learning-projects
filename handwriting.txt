@@ -1,0 +1,292 @@
+
+# Import TensorFlow
+import tensorflow as tf
+
+# Import NumPy
+import numpy as np
+
+# Import Matplotlib
+import matplotlib.pyplot as plt
+
+# Import time to measure training time
+import time
+
+# Display TensorFlow version
+print("TensorFlow Version:", tf.__version__)
+
+print("All libraries imported successfully!")
+
+# Load MNIST dataset from TensorFlow
+
+(x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
+
+# Display dataset information
+
+print("Training images:", x_train.shape)
+
+print("Training labels:", y_train.shape)
+
+print("Testing images:", x_test.shape)
+
+print("Testing labels:", y_test.shape)
+
+# visualise the data
+
+# Display the first 10 images
+
+plt.figure(figsize=(12, 4))
+
+for i in range(10):
+
+    plt.subplot(2, 5, i + 1)
+
+    plt.imshow(x_train[i], cmap='gray')
+
+    plt.title("Label: " + str(y_train[i]))
+
+    plt.axis('off')
+
+plt.tight_layout()
+
+plt.show()
+
+# Normalize training images
+
+x_train = x_train.astype('float32') / 255.0
+
+# Normalize testing images
+
+x_test = x_test.astype('float32') / 255.0
+
+# Check normalized values
+
+print("Minimum pixel value:", x_train.min())
+
+print("Maximum pixel value:", x_train.max())
+
+print("Normalization completed!")
+
+# Flatten training images
+
+x_train = x_train.reshape(60000, 784)
+
+# Flatten testing images
+
+x_test = x_test.reshape(10000, 784)
+
+# Display new shapes
+
+print("Training data shape:", x_train.shape)
+
+print("Testing data shape:", x_test.shape)
+
+# Function to create ANN model
+
+def create_model(activation_name):
+
+    model = tf.keras.Sequential([
+
+        # Input layer
+        tf.keras.layers.Input(shape=(784,)),
+
+        # Hidden layer
+        tf.keras.layers.Dense(
+            128,
+            activation=activation_name
+        ),
+
+        # Output layer
+        tf.keras.layers.Dense(
+            10,
+            activation='softmax'
+        )
+
+    ])
+
+    return model
+
+# Create ReLU model
+
+relu_model = create_model('relu')
+
+# Create Sigmoid model
+
+sigmoid_model = create_model('sigmoid')
+
+# Create Tanh model
+
+tanh_model = create_model('tanh')
+
+print("All three ANN models created successfully!")
+
+# Compile ReLU model
+
+relu_model.compile(
+    optimizer='adam',
+    loss='sparse_categorical_crossentropy',
+    metrics=['accuracy']
+)
+
+# Compile Sigmoid model
+
+sigmoid_model.compile(
+    optimizer='adam',
+    loss='sparse_categorical_crossentropy',
+    metrics=['accuracy']
+)
+
+# Compile Tanh model
+
+tanh_model.compile(
+    optimizer='adam',
+    loss='sparse_categorical_crossentropy',
+    metrics=['accuracy']
+)
+
+print("All models compiled successfully!")
+
+# Start measuring time
+
+start_time = time.time()
+
+# Train ReLU model
+
+relu_history = relu_model.fit(
+    x_train,
+    y_train,
+    epochs=5,
+    batch_size=128,
+    validation_split=0.1,
+    verbose=1
+)
+
+# Calculate training time
+
+relu_time = time.time() - start_time
+
+print("ReLU training completed!")
+
+print("Training time:", relu_time, "seconds")
+
+
+# Start measuring time
+
+start_time = time.time()
+
+# Train Sigmoid model
+
+sigmoid_history = sigmoid_model.fit(
+    x_train,
+    y_train,
+    epochs=5,
+    batch_size=128,
+    validation_split=0.1,
+    verbose=1
+)
+
+# Calculate training time
+
+sigmoid_time = time.time() - start_time
+
+print("Sigmoid training completed!")
+
+print("Training time:", sigmoid_time, "seconds")
+
+# Start measuring time
+
+start_time = time.time()
+
+# Train Tanh model
+
+tanh_history = tanh_model.fit(
+    x_train,
+    y_train,
+    epochs=5,
+    batch_size=128,
+    validation_split=0.1,
+    verbose=1
+)
+
+# Calculate training time
+
+tanh_time = time.time() - start_time
+
+print("Tanh training completed!")
+
+print("Training time:", tanh_time, "seconds")
+
+# Evaluate ReLU model
+
+relu_loss, relu_accuracy = relu_model.evaluate(
+    x_test,
+    y_test,
+    verbose=0
+)
+
+# Evaluate Sigmoid model
+
+sigmoid_loss, sigmoid_accuracy = sigmoid_model.evaluate(
+    x_test,
+    y_test,
+    verbose=0
+)
+
+# Evaluate Tanh model
+
+tanh_loss, tanh_accuracy = tanh_model.evaluate(
+    x_test,
+    y_test,
+    verbose=0
+)
+
+# Display comparison
+
+print("RELU ACCURACY:", relu_accuracy * 100)
+
+print("SIGMOID ACCURACY:", sigmoid_accuracy * 100)
+
+print("TANH ACCURACY:", tanh_accuracy * 100)
+
+print("--------------------------------")
+
+print("RELU LOSS:", relu_loss)
+
+print("SIGMOID LOSS:", sigmoid_loss)
+
+print("TANH LOSS:", tanh_loss)
+
+# Activation function names
+
+activation_names = ['ReLU', 'Sigmoid', 'Tanh']
+
+# Testing accuracy values
+
+accuracy_values = [
+    relu_accuracy * 100,
+    sigmoid_accuracy * 100,
+    tanh_accuracy * 100
+]
+
+# Draw bar graph
+
+plt.figure(figsize=(8, 5))
+
+plt.bar(activation_names, accuracy_values)
+
+plt.title('Accuracy Comparison of Activation Functions')
+
+plt.xlabel('Activation Functions')
+
+plt.ylabel('Testing Accuracy (%)')
+
+plt.ylim(0, 100)
+
+plt.show()
+
+
+
+
+
+
+
+
