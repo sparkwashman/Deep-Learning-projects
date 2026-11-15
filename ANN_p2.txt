@@ -1,0 +1,340 @@
+
+# Import TensorFlow
+import tensorflow as tf
+
+# Import NumPy
+import numpy as np
+
+# Import Matplotlib
+import matplotlib.pyplot as plt
+
+# Check TensorFlow version
+print("TensorFlow Version:", tf.__version__)
+
+print("Libraries imported successfully!") 
+
+# create the data set by ANN
+
+# Set random seed for reproducible results
+np.random.seed(42)
+
+# Number of products
+n = 5000
+
+# Generate manufacturing measurements
+
+temperature = np.random.normal(190, 8, n)
+
+pressure = np.random.normal(6, 0.5, n)
+
+vibration = np.random.normal(1.5, 0.7, n)
+
+machine_speed = np.random.normal(1200, 80, n)
+
+dimension_deviation = np.random.normal(0, 0.15, n)
+
+weight_deviation = np.random.normal(0, 1.5, n)
+
+# Keep values within reasonable simulated ranges
+
+temperature = np.clip(temperature, 160, 220)
+pressure = np.clip(pressure, 4.2, 7.8)
+vibration = np.clip(vibration, 0.1, 5)
+machine_speed = np.clip(machine_speed, 850, 1550)
+dimension_deviation = np.clip(dimension_deviation, -0.6, 0.6)
+weight_deviation = np.clip(weight_deviation, -6, 6)
+
+# Combine all six measurements into one dataset
+
+X = np.column_stack((
+    temperature,
+    pressure,
+    vibration,
+    machine_speed,
+    dimension_deviation,
+    weight_deviation
+)).astype(np.float32)
+
+print("Dataset created successfully!")
+print("Number of products:", len(X))
+print("Number of input features:", X.shape[1])
+
+# create labels just like apply conditions to make differance between good and defective products 
+
+# Create quality labels
+
+y = (
+    (temperature < 175) |
+    (temperature > 205) |
+    (pressure < 5) |
+    (pressure > 7) |
+    (vibration > 2.8) |
+    (machine_speed < 1000) |
+    (machine_speed > 1400) |
+    (np.abs(dimension_deviation) > 0.30) |
+    (np.abs(weight_deviation) > 3.0)
+).astype(np.float32)
+
+# Display the number of good and defective products
+
+print("Good Products:", np.sum(y == 0))
+
+print("Defective Products:", np.sum(y == 1))
+
+print("Labels created successfully!")
+
+# inspect our dadaset to make it more accuarate 
+
+# Display first five product records
+
+print("First five product records:")
+
+print(X[:5])
+
+# Display corresponding quality labels
+
+print("Quality labels:")
+
+print(y[:5])
+
+# processing the data
+
+# Shuffle the dataset indices
+
+indices = np.random.permutation(len(X))
+
+# Calculate split sizes
+
+train_size = int(0.70 * len(X))
+
+val_size = int(0.15 * len(X))
+
+# Divide the indices
+
+train_indices = indices[:train_size]
+
+val_indices = indices[train_size:train_size + val_size]
+
+test_indices = indices[train_size + val_size:]
+
+# Create training, validation and testing datasets
+
+X_train = X[train_indices]
+y_train = y[train_indices]
+
+X_val = X[val_indices]
+y_val = y[val_indices]
+
+X_test = X[test_indices]
+y_test = y[test_indices]
+
+print("Training records:", len(X_train))
+print("Validation records:", len(X_val))
+print("Testing records:", len(X_test))
+
+# Standarization to make the features comaparable to other using mean, standard deviation
+
+# Calculate mean and standard deviation
+# using training data only
+
+mean = np.mean(X_train, axis=0)
+
+std = np.std(X_train, axis=0)
+
+# Prevent division by zero
+
+std[std == 0] = 1
+
+# Normalize all datasets using training statistics
+
+X_train = (X_train - mean) / std
+
+X_val = (X_val - mean) / std
+
+X_test = (X_test - mean) / std
+
+print("Data normalization completed!")
+
+# build ANN model
+
+# Create an ANN model
+
+model = tf.keras.Sequential([
+
+    # Input layer and first hidden layer
+    tf.keras.layers.Input(shape=(6,)),
+
+    tf.keras.layers.Dense(16, activation='relu'),
+
+    # Second hidden layer
+    tf.keras.layers.Dense(8, activation='relu'),
+
+    # Output layer
+    tf.keras.layers.Dense(1, activation='sigmoid')
+
+])
+
+# Display ANN architecture
+
+model.summary()
+
+# Compile the ANN model
+
+model.compile(
+
+    optimizer='adam',
+
+    loss='binary_crossentropy',
+
+    metrics=['accuracy']
+
+)
+
+print("ANN model compiled successfully!")
+
+
+# Train the ANN model
+
+history = model.fit(
+
+    X_train,
+
+    y_train,
+
+    epochs=30,
+
+    batch_size=32,
+
+    validation_data=(X_val, y_val)
+
+)
+
+print("Model training completed!")
+
+
+# Evaluate model using testing data
+
+test_loss, test_accuracy = model.evaluate(
+    X_test,
+    y_test
+)
+
+# Display results
+
+print("Testing Loss:", test_loss)
+
+print("Testing Accuracy:", test_accuracy * 100, "%")
+
+
+# Plot training and validation accuracy
+
+plt.plot(history.history['accuracy'],
+         label='Training Accuracy')
+
+plt.plot(history.history['val_accuracy'],
+         label='Validation Accuracy')
+
+plt.title('ANN Model Accuracy')
+
+plt.xlabel('Epochs')
+
+plt.ylabel('Accuracy')
+
+plt.legend()
+
+plt.show()
+
+
+# Plot training and validation loss
+
+plt.plot(history.history['loss'],
+         label='Training Loss')
+
+plt.plot(history.history['val_loss'],
+         label='Validation Loss')
+
+plt.title('ANN Model Loss')
+
+plt.xlabel('Epochs')
+
+plt.ylabel('Loss')
+
+plt.legend()
+
+plt.show()
+
+
+# Create a new product
+
+new_product = np.array([[
+    190,
+    6.0,
+    1.2,
+    1200,
+    0.05,
+    0.4
+]], dtype=np.float32)
+
+# Normalize new product using training statistics
+
+new_product = (new_product - mean) / std
+
+# Predict using the trained ANN
+
+prediction = model.predict(new_product)
+
+# Extract predicted probability
+
+probability = prediction[0][0]
+
+# Classify the product
+
+if probability >= 0.5:
+
+    print("Result: DEFECTIVE PRODUCT")
+
+else:
+
+    print("Result: GOOD PRODUCT")
+
+print("Defect Probability:", probability * 100, "%")
+
+
+# Predict testing data
+
+test_predictions = model.predict(X_test)
+
+# Convert probabilities into classes
+
+predicted_classes = (test_predictions >= 0.5).astype(int).flatten()
+
+# Calculate confusion matrix values
+
+TP = np.sum((y_test == 1) & (predicted_classes == 1))
+
+TN = np.sum((y_test == 0) & (predicted_classes == 0))
+
+FP = np.sum((y_test == 0) & (predicted_classes == 1))
+
+FN = np.sum((y_test == 1) & (predicted_classes == 0))
+
+# Display confusion matrix
+
+print("True Positive:", TP)
+print("True Negative:", TN)
+print("False Positive:", FP)
+print("False Negative:", FN)
+
+print("\nConfusion Matrix:")
+
+print([[TN, FP],
+       [FN, TP]])
+
+
+
+
+
+
+
+
+
