@@ -1,0 +1,287 @@
+
+# Step 1: Import required libraries
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+from sklearn.metrics.pairwise import cosine_similarity
+import urllib.request
+import zipfile
+import os
+
+print("All libraries imported successfully!")
+
+
+# Download MovieLens dataset
+
+url = "https://files.grouplens.org/datasets/movielens/ml-100k.zip"
+
+urllib.request.urlretrieve(url, "ml-100k.zip")
+
+# Extract dataset
+with zipfile.ZipFile("ml-100k.zip", "r") as zip_ref:
+    zip_ref.extractall(".")
+
+print("Dataset downloaded and extracted successfully!")
+
+# Load movie information
+
+columns = [
+    "movie_id", "title", "release_date", "video_release_date",
+    "imdb_url", "unknown", "Action", "Adventure", "Animation",
+    "Children", "Comedy", "Crime", "Documentary", "Drama",
+    "Fantasy", "Film-Noir", "Horror", "Musical", "Mystery",
+    "Romance", "Sci-Fi", "Thriller", "War", "Western"
+]
+
+movies = pd.read_csv(
+    "ml-100k/u.item",
+    sep="|",
+    names=columns,
+    encoding="latin-1"
+)
+
+# Load ratings
+ratings = pd.read_csv(
+    "ml-100k/u.data",
+    sep="\t",
+    names=["user_id", "movie_id", "rating", "timestamp"]
+)
+
+print("Movies:", movies.shape)
+print("Ratings:", ratings.shape)
+
+display(movies.head())
+display(ratings.head())
+
+# STEP 2: DATASET UNDERSTANDING AND PREPARATION
+
+# 1. Check missing values
+print("Missing values in Movies:")
+print(movies.isnull().sum())
+
+print("\nMissing values in Ratings:")
+print(ratings.isnull().sum())
+
+
+# 2. Check duplicate records
+print("\nDuplicate movies:", movies.duplicated().sum())
+print("Duplicate ratings:", ratings.duplicated().sum())
+
+
+# 3. Identify movie genre columns
+genre_cols = [
+    col for col in movies.columns
+    if col not in [
+        'movie_id',
+        'title',
+        'release_date',
+        'video_release_date',
+        'imdb_url'
+    ]
+]
+
+print("\nAvailable movie genres:")
+print(genre_cols)
+
+
+# 4. Combine ratings and movie information
+movie_data = pd.merge(
+    ratings,
+    movies,
+    on='movie_id',
+    how='inner'
+)
+
+print("\nCombined Dataset:")
+display(movie_data.head())
+
+print("\nCombined Dataset Shape:", movie_data.shape)
+
+# STEP 3.1: CREATE MOVIE-USER MATRIX
+
+# Create a matrix of movies and user ratings
+movie_user_matrix = ratings.pivot_table(
+    index='movie_id',
+    columns='user_id',
+    values='rating'
+).fillna(0)
+
+print("Movie-User Matrix Shape:", movie_user_matrix.shape)
+
+# Display first 5 rows and 5 users
+display(movie_user_matrix.iloc[:5, :5])
+
+# STEP 3.2: CALCULATE COSINE SIMILARITY
+
+from sklearn.metrics.pairwise import cosine_similarity
+
+# Calculate similarity between movies
+movie_similarity = cosine_similarity(movie_user_matrix)
+
+# Convert result into a DataFrame
+movie_similarity_df = pd.DataFrame(
+    movie_similarity,
+    index=movie_user_matrix.index,
+    columns=movie_user_matrix.index
+)
+
+print("Similarity Matrix Shape:", movie_similarity_df.shape)
+print("\nSimilarity Matrix:")
+display(movie_similarity_df.iloc[:5, :5])
+
+# STEP 3.3: MOVIE RECOMMENDATION FUNCTION
+
+def recommend_movies(movie_title, number_of_recommendations=10):
+
+    # Find the movie ID using its title
+    matched_movies = movies[
+        movies['title'].str.lower() == movie_title.lower()
+    ]
+
+    if matched_movies.empty:
+        print("Movie not found! Please enter the exact movie title.")
+        return
+
+    movie_id = matched_movies.iloc[0]['movie_id']
+
+    # Get similarity scores for the selected movie
+    similarity_scores = movie_similarity_df[movie_id]
+
+    # Sort movies by similarity
+    similar_movies = similarity_scores.sort_values(
+        ascending=False
+    )
+
+    # Remove the selected movie itself
+    similar_movies = similar_movies.drop(movie_id)
+
+    # Select top recommendations
+    top_movies = similar_movies.head(number_of_recommendations)
+
+    # Get movie titles
+    recommendations = movies[
+        movies['movie_id'].isin(top_movies.index)
+    ][['movie_id', 'title']].copy()
+
+    # Add similarity scores
+    recommendations['similarity_score'] = (
+        top_movies.reindex(recommendations['movie_id']).values
+    )
+
+    recommendations = recommendations.sort_values(
+        by='similarity_score',
+        ascending=False
+    )
+
+    print("Recommendations for:", movie_title)
+
+    return recommendations.reset_index(drop=True)
+
+# STEP 3.4: TEST THE RECOMMENDATION ENGINE
+
+recommendations = recommend_movies("Toy Story (1995)", 10)
+
+display(recommendations)
+
+# STEP 4.1: IDENTIFY POPULARITY BIAS
+
+# Count how many ratings each movie received
+movie_popularity = ratings.groupby('movie_id').agg(
+    rating_count=('rating', 'count'),
+    average_rating=('rating', 'mean')
+).reset_index()
+
+# Add popularity information to movie details
+movie_analysis = movies.merge(
+    movie_popularity,
+    on='movie_id',
+    how='left'
+)
+
+# Display the 10 most popular movies
+top_popular_movies = movie_analysis.sort_values(
+    by='rating_count',
+    ascending=False
+).head(10)
+
+print("TOP 10 MOST POPULAR MOVIES")
+display(
+    top_popular_movies[
+        ['title', 'rating_count', 'average_rating']
+    ]
+)
+
+# STEP 4.2: CHECK POPULARITY OF RECOMMENDATIONS
+
+recommended_analysis = recommendations.merge(
+    movie_popularity,
+    on='movie_id',
+    how='left'
+)
+
+print("RECOMMENDED MOVIES AND THEIR POPULARITY")
+
+display(
+    recommended_analysis[
+        ['title', 'similarity_score',
+         'rating_count', 'average_rating']
+    ]
+)
+
+# Compare average popularity
+overall_popularity = movie_popularity['rating_count'].mean()
+
+recommended_popularity = (
+    recommended_analysis['rating_count'].mean()
+)
+
+print("\nAverage ratings per movie in dataset:",
+      round(overall_popularity, 2))
+
+print("Average ratings per recommended movie:",
+      round(recommended_popularity, 2))
+
+# STEP 4.3: GENRE REPRESENTATION ANALYSIS
+
+# Exclude non-genre columns
+genre_cols = [
+    col for col in movies.columns
+    if col not in [
+        'movie_id', 'title', 'release_date',
+        'video_release_date', 'imdb_url', 'unknown'
+    ]
+]
+
+# Get genre counts in the recommended movies
+recommended_details = recommendations.merge(
+    movies[['movie_id'] + genre_cols],
+    on='movie_id',
+    how='left'
+)
+
+genre_counts = recommended_details[genre_cols].sum().sort_values(
+    ascending=False
+)
+
+print("GENRE DISTRIBUTION IN RECOMMENDATIONS")
+display(genre_counts[genre_counts > 0])
+
+# Plot genre distribution
+plt.figure(figsize=(12, 5))
+
+genre_counts.plot(kind='bar')
+
+plt.title("Genre Distribution in Recommended Movies")
+plt.xlabel("Movie Genres")
+plt.ylabel("Number of Recommended Movies")
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
+
+
+
+
+
+
