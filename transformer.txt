@@ -1,0 +1,96 @@
+# Install the Hugging Face transformers library for models and pipeline
+!pip install -q transformers torch
+from transformers import pipeline
+
+# Load the text generation pipeline using the GPT-2 model
+text_generator = pipeline('text-generation', model='gpt2')
+def generate_text(prompt, max_length=50, temperature=0.7, top_k=50, top_p=0.9):
+    """
+    Generates text continuation based on a prompt and decoding parameters.
+    """
+    results = text_generator(
+        prompt,
+        max_new_tokens=max_length,
+        num_return_sequences=1,
+        temperature=temperature,
+        top_k=top_k,
+        top_p=top_p,
+        do_sample=True,
+        pad_token_id=50256 # Standard padding token for GPT-2
+    )
+    
+    # Extract and return the generated text
+    return results[0]['generated_text']
+# Define a starting prompt
+prompt = "In the future, artificial intelligence will"
+
+print("--- Experiment 1: Standard Creative Generation ---")
+print(generate_text(prompt, max_length=40, temperature=0.7))
+
+print("\n--- Experiment 2: Focused / Deterministic Output (Low Temp) ---")
+print(generate_text(prompt, max_length=40, temperature=0.2))
+
+print("\n--- Experiment 3: High Creativity / Wild Output (High Temp) ---")
+print(generate_text(prompt, max_length=40, temperature=1.2))
+test_prompt = "Once upon a time in a distant galaxy,"
+print(generate_text(test_prompt, max_length=30, temperature=0.7))
+from transformers import pipeline
+
+# Load the text generation pipeline
+generator = pipeline('text-generation', model='gpt2')
+
+# Define your island story prompt with Lexus as the protagonist
+island_prompt = (
+    "On a hidden island, all the animals were extraordinarily creative and highly intelligent. "
+    "The owls were master architects, the dolphins engineered complex water channels, "
+    "and the monkeys built intricate inventions. Yet, among all these brilliant minds, "
+    "the ruler of the island was a wise donkey named Lexus, crowned king for his unmatched judgment. "
+    "One day, a major crisis threatened the peace of the island, and King Lexus stepped forward to"
+)
+
+def test_story_endings(prompt):
+    print("==================================================")
+    print("STORY PROMPT:")
+    print(prompt)
+    print("==================================================\n")
+    
+    # Ending 1: Fable / Wise Resolution (Moderate Temperature)
+    ending_1 = generator(
+        prompt,
+        max_new_tokens=80,
+        temperature=0.7,
+        top_p=0.9,
+        do_sample=True,
+        pad_token_id=50256
+    )[0]['generated_text']
+    
+    # Ending 2: Highly Creative / Wild Twist (High Temperature)
+    ending_2 = generator(
+        prompt,
+        max_new_tokens=80,
+        temperature=1.1,
+        top_p=0.95,
+        do_sample=True,
+        pad_token_id=50256
+    )[0]['generated_text']
+
+    # Ending 3: Structured / Focused (Low Temperature)
+    ending_3 = generator(
+        prompt,
+        max_new_tokens=80,
+        temperature=0.3,
+        do_sample=True,
+        pad_token_id=50256
+    )[0]['generated_text']
+
+    print("--- ENDING 1 (Balanced & Fable-Like | Temp: 0.7) ---")
+    print(ending_1)
+    
+    print("\n--- ENDING 2 (Wild Twist & High Creativity | Temp: 1.1) ---")
+    print(ending_2)
+
+    print("\n--- ENDING 3 (Focused & Deterministic | Temp: 0.3) ---")
+    print(ending_3)
+
+# Execute the test
+test_story_endings(island_prompt)
